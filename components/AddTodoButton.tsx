@@ -9,7 +9,8 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { IconSymbol } from "./ui/IconSymbol";
 import { ThemedView } from "./ThemedView";
 import { ThemedText } from "./ThemedText";
-import { addTodo, Priority } from "@/store/todoSlice";
+import { addTodo, Priority, Todo } from "@/store/todoSlice";
+import { PRIORITY } from "@/constants/Constants";
 
 const PriorityButton = ({
   priority,
@@ -27,111 +28,38 @@ const PriorityButton = ({
     <ThemedText
       style={[styles.priorityText, selected && styles.selectedPriorityText]}
     >
-      {priority === "high"
-        ? "Cao"
-        : priority === "medium"
-        ? "Trung bình"
-        : "Thấp"}
+      {PRIORITY[priority].name}
     </ThemedText>
   </Pressable>
 );
 
-export default function AddTodoButton() {
-  const dispatch = useDispatch();
-  const [modalVisible, setModalVisible] = useState(false);
-  const [title, setTitle] = useState("");
-  const [priority, setPriority] = useState<Priority>("medium");
-  const [dueDate, setDueDate] = useState(new Date());
+interface AddTodoButtonProps {
+  onAdd: () => void;
+}
 
+export default function AddTodoButton(props: AddTodoButtonProps) {
   const scale = useAnimatedStyle(() => ({
     transform: [{ scale: withSpring(1) }],
   }));
 
-  const handleAdd = () => {
-    if (title.trim()) {
-      dispatch(
-        addTodo({
-          title: title.trim(),
-          priority,
-          completed: false,
-          dueDate: dueDate.toISOString(),
-        })
-      );
-      setTitle("");
-      setModalVisible(false);
-    }
-  };
-
   return (
     <>
       <Animated.View style={[styles.buttonContainer, scale]}>
-        <Pressable style={styles.button} onPress={() => setModalVisible(true)}>
+        <Pressable style={styles.button} onPress={props.onAdd}>
           <ThemedText style={styles.buttonText}>Tạo task mới +</ThemedText>
         </Pressable>
       </Animated.View>
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <ThemedView style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <ThemedText style={styles.modalTitle}>Task 1</ThemedText>
-
-            <View style={styles.inputContainer}>
-              <ThemedText style={styles.label}>Thời hạn</ThemedText>
-              <DateTimePicker
-                value={dueDate}
-                mode="date"
-                display="default"
-                onChange={(event, selectedDate) => {
-                  setDueDate(selectedDate || dueDate);
-                }}
-              />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <ThemedText style={styles.label}>Mức độ ưu tiên</ThemedText>
-              <View style={styles.priorityContainer}>
-                <PriorityButton
-                  priority="high"
-                  selected={priority === "high"}
-                  onSelect={() => setPriority("high")}
-                />
-                <PriorityButton
-                  priority="medium"
-                  selected={priority === "medium"}
-                  onSelect={() => setPriority("medium")}
-                />
-                <PriorityButton
-                  priority="low"
-                  selected={priority === "low"}
-                  onSelect={() => setPriority("low")}
-                />
-              </View>
-            </View>
-
-            <Pressable style={styles.addButton} onPress={handleAdd}>
-              <ThemedText style={styles.addButtonText}>Xong</ThemedText>
-            </Pressable>
-          </View>
-        </ThemedView>
-      </Modal>
     </>
   );
 }
 
 const styles = StyleSheet.create({
   buttonContainer: {
-    position: "absolute",
-    left: 16,
-    right: 16,
-    bottom: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 24,
   },
   button: {
-    backgroundColor: "#FF4B8C",
+    backgroundColor: "#F65D79",
     height: 56,
     borderRadius: 28,
     justifyContent: "center",

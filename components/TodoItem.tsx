@@ -1,35 +1,108 @@
-import { StyleSheet, Pressable, View } from "react-native";
+import { StyleSheet, Pressable, View, Image, TextInput } from "react-native";
 import { useDispatch } from "react-redux";
 import Animated, {
   useAnimatedStyle,
   withSpring,
-  withTiming,
   useSharedValue,
+  FadeInRight,
+  FadeOutLeft,
+  LinearTransition,
 } from "react-native-reanimated";
-import { IconSymbol } from "./ui/IconSymbol";
 import { ThemedText } from "./ThemedText";
-import { ThemedView } from "./ThemedView";
-import { Todo, updateTodo, deleteTodo } from "@/store/todoSlice";
+import {
+  Todo,
+  updateTodo,
+  toggleEdit,
+  deleteTodo,
+  toggleDatePicker,
+  Priority,
+} from "@/store/todoSlice";
+import { PRIORITY } from "@/constants/Constants";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import moment from "moment";
 
-const priorityText = {
-  high: "Ưu tiên cao",
-  medium: "Ưu tiên trung bình",
-  low: "Ưu tiên thấp",
-};
-
-const priorityColors = {
-  high: "#4CAF50",
-  medium: "#FF9800",
-  low: "#2196F3",
-};
-
-export default function TodoItem({
+const EditMode = ({
   todo,
-  onEdit,
+  onUpdate,
+  onDelete,
 }: {
   todo: Todo;
-  onEdit?: () => void;
-}) {
+  onUpdate: (changes: Partial<Todo>) => void;
+  onDelete: () => void;
+}) => {
+  const dispatch = useDispatch();
+
+  return (
+    <View style={styles.editContent}>
+      <View style={styles.actionButton}>
+        <Pressable onPress={onDelete} style={styles.deleteButton}>
+          <Image
+            source={require("../assets/icons/delete.png")}
+            style={styles.deleteIcon}
+          />
+          <ThemedText style={styles.deleteText}>Xoá</ThemedText>
+        </Pressable>
+      </View>
+
+      <View style={styles.editItem}>
+        <TextInput
+          value={todo.title}
+          onChangeText={(text) => onUpdate({ title: text })}
+          style={styles.editLabel}
+        />
+      </View>
+
+      <Pressable
+        style={styles.editItem}
+        onPress={() => dispatch(toggleDatePicker(todo.id))}
+      >
+        <ThemedText style={styles.editLabel}>Thời hạn</ThemedText>
+        <ThemedText style={styles.editValue}>
+          {moment(todo.dueDate).format("DD/MM/YYYY")}
+        </ThemedText>
+      </Pressable>
+
+      {todo.showDatePicker && (
+        <DateTimePicker
+          value={new Date(todo.dueDate)}
+          mode="date"
+          onChange={(event, date) => {
+            if (date) {
+              onUpdate({ dueDate: date.toISOString() });
+            }
+            dispatch(toggleDatePicker(todo.id));
+          }}
+        />
+      )}
+
+      <Pressable
+        style={styles.editItem}
+        onPress={() => {
+          const nextPriority = ((todo.priority % 3) + 1) as Priority;
+          onUpdate({ priority: nextPriority });
+        }}
+      >
+        <ThemedText style={styles.editLabel}>Mức độ ưu tiên</ThemedText>
+        <ThemedText
+          style={[styles.editValue, { color: PRIORITY[todo.priority].color }]}
+        >
+          {PRIORITY[todo.priority].name}
+        </ThemedText>
+      </Pressable>
+
+      <View style={styles.doneButtonContainer}>
+        <Pressable
+          style={styles.doneButton}
+          onPress={() => dispatch(toggleEdit(todo.id))}
+        >
+          <ThemedText style={styles.doneText}>Xong</ThemedText>
+        </Pressable>
+      </View>
+    </View>
+  );
+};
+
+export default function TodoItem({ todo }: { todo: Todo }) {
   const dispatch = useDispatch();
   const scale = useSharedValue(1);
 
@@ -37,7 +110,7 @@ export default function TodoItem({
     transform: [{ scale: scale.value }],
   }));
 
-  const handlePress = () => {
+  const handleComplete = () => {
     scale.value = withSpring(0.95, {}, () => {
       scale.value = withSpring(1);
     });
@@ -49,34 +122,62 @@ export default function TodoItem({
     );
   };
 
-  const getDaysLeft = () => {
-    // Tính số ng��y còn lại
-    const today = new Date();
-    const dueDate = new Date(todo.dueDate);
-    const diffTime = dueDate.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return `Còn ${diffDays} ngày`;
+  const handleUpdate = (changes: Partial<Todo>) => {
+    dispatch(updateTodo({ id: todo.id, changes }));
   };
 
   return (
-    <Animated.View style={[styles.container, animatedStyles]}>
-      <Pressable onPress={handlePress} style={styles.content}>
-        <View style={styles.checkbox} />
-        <View style={styles.textContainer}>
-          <ThemedText style={styles.title}>{todo.title}</ThemedText>
-          <ThemedText
-            style={[styles.priority, { color: priorityColors[todo.priority] }]}
-          >
-            {priorityText[todo.priority]}
-          </ThemedText>
-        </View>
-        <View style={styles.rightContainer}>
-          <ThemedText style={styles.daysLeft}>{getDaysLeft()}</ThemedText>
-          <Pressable onPress={onEdit}>
-            <IconSymbol name="pencil" size={20} color="#666" />
-          </Pressable>
-        </View>
-      </Pressable>
+    <Animated.View style={animatedStyles}>
+      <Animated.View
+        entering={FadeInRight}
+        exiting={FadeOutLeft}
+        layout={LinearTransition}
+        style={styles.container}
+      >
+        {todo.isEdit ? (
+          <EditMode
+            todo={todo}
+            onUpdate={handleUpdate}
+            onDelete={() => dispatch(deleteTodo(todo.id))}
+          />
+        ) : (
+          <View style={styles.content}>
+            <Pressable onPress={handleComplete} style={styles.leftContent}>
+              <View
+                style={[
+                  styles.checkbox,
+                  todo.completed && styles.checkboxChecked,
+                ]}
+              >
+                {todo.completed && <View style={styles.checkmark} />}
+              </View>
+              <View style={styles.textContent}>
+                <ThemedText style={styles.titleText}>{todo.title}</ThemedText>
+                <ThemedText
+                  style={[
+                    styles.priority,
+                    { color: PRIORITY[todo.priority].color },
+                  ]}
+                >
+                  {PRIORITY[todo.priority].name}
+                </ThemedText>
+              </View>
+            </Pressable>
+            <Pressable
+              onPress={() => dispatch(toggleEdit(todo.id))}
+              style={styles.rightContent}
+            >
+              <Image
+                source={require("../assets/icons/pen.png")}
+                style={styles.editIcon}
+              />
+              <ThemedText style={styles.daysLeft}>
+                {moment(todo.dueDate).diff(moment(), "days")} ngày
+              </ThemedText>
+            </Pressable>
+          </View>
+        )}
+      </Animated.View>
     </Animated.View>
   );
 }
@@ -95,34 +196,136 @@ const styles = StyleSheet.create({
   },
   content: {
     flexDirection: "row",
-    alignItems: "center",
-    padding: 16,
+    paddingLeft: 18,
+    paddingRight: 27,
+    paddingTop: 32,
+    paddingBottom: 24,
+    justifyContent: "space-between",
   },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: "#DDD",
-    marginRight: 12,
-  },
-  textContainer: {
+  leftContent: {
+    flexDirection: "row",
     flex: 1,
   },
-  title: {
+  rightContent: {
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    marginTop: 4,
+  },
+  textContent: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  titleText: {
+    fontFamily: "SVN-Poppins-Medium",
     fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 4,
+    marginBottom: 10,
+    color: "#000",
+  },
+  checkbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 5,
+    borderWidth: 2,
+    borderColor: "#C4C4C4",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#C4C4C4",
+  },
+  checkboxChecked: {
+    backgroundColor: "#2196F3",
+    borderColor: "#2196F3",
+  },
+  checkmark: {
+    width: 12,
+    height: 6,
+    borderLeftWidth: 2,
+    borderBottomWidth: 2,
+    borderColor: "#FFFFFF",
+    transform: [{ rotate: "-45deg" }],
+    marginTop: -2,
   },
   priority: {
-    fontSize: 14,
-  },
-  rightContainer: {
-    alignItems: "flex-end",
+    fontSize: 12,
   },
   daysLeft: {
     fontSize: 12,
-    color: "#666",
+    color: "#666666",
+    marginTop: 4,
+  },
+  penIcon: {
+    width: 16,
+    height: 16,
+    marginBottom: 10,
+  },
+  editContent: {
+    padding: 24,
+  },
+  editItem: {
+    flexDirection: "row",
+    marginBottom: 24,
+    paddingBottom: 8,
+
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEEEEE",
+    justifyContent: "space-between",
+  },
+  editLabel: {
+    fontFamily: "SVN-Poppins-SemiBold",
+    fontSize: 16,
+    lineHeight: 20,
+    color: "#000",
+  },
+  editValue: {
+    fontFamily: "SVN-Poppins",
+    fontSize: 14,
+    lineHeight: 22,
+    color: "#000",
+  },
+
+  doneButtonContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    paddingVertical: 32,
+  },
+  doneButton: {
+    backgroundColor: "#21AB3B",
+    borderRadius: 22,
+    paddingHorizontal: 24,
+    paddingVertical: 6,
+  },
+  doneText: {
+    fontFamily: "SVN-Poppins-Medium",
+    color: "#FFFFFF",
+    fontSize: 12,
+    lineHeight: 20,
+  },
+  actions: {
+    flexDirection: "row",
+    gap: 16,
     marginBottom: 4,
+  },
+  actionButton: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    paddingBottom: 16,
+  },
+  deleteButton: {
+    padding: 4,
+    flexDirection: "row",
+  },
+  editIcon: {
+    width: 16,
+    height: 16,
+  },
+  deleteIcon: {
+    width: 14,
+    height: 16,
+  },
+  deleteText: {
+    fontFamily: "SVN-Poppins",
+    fontSize: 12,
+    color: "#666666",
+    marginLeft: 4,
+    lineHeight: 20,
   },
 });

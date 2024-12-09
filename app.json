@@ -33,7 +33,8 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true
@@ -45,6 +46,7 @@
       "eas": {
         "projectId": "b6366c37-ba86-4fb5-9c82-d249e7049c0b"
       }
-    }
+    },
+    "assetBundlePatterns": ["**/*", "assets/*"]
   }
 }
