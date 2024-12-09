@@ -1,4 +1,4 @@
-import { StyleSheet, View } from "react-native";
+import { Animated, StyleSheet, View } from "react-native";
 import { FlashList } from "@shopify/flash-list";
 import { useSelector, useDispatch } from "react-redux";
 
@@ -8,6 +8,7 @@ import TodoItem from "@/components/TodoItem";
 import AddTodoButton from "@/components/AddTodoButton";
 import { addTodo, Todo } from "@/store/todoSlice";
 import { ThemedText } from "@/components/ThemedText";
+import { LinearTransition } from "react-native-reanimated";
 
 export default function HomeScreen() {
   const dispatch = useDispatch();
@@ -25,11 +26,11 @@ export default function HomeScreen() {
         To-do list
       </ThemedText>
 
-      <FlashList
+      <Animated.FlatList
         data={todos}
         renderItem={renderItem}
-        estimatedItemSize={138}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+        itemLayoutAnimation={LinearTransition}
       />
       <AddTodoButton onAdd={handleAdd} />
     </ThemedView>

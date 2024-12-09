@@ -7,6 +7,13 @@ import Animated, {
   FadeInRight,
   FadeOutLeft,
   LinearTransition,
+  FlipInXUp,
+  FlipOutXDown,
+  LightSpeedInRight,
+  LightSpeedOutRight,
+  LightSpeedOutLeft,
+  StretchInY,
+  StretchOutY,
 } from "react-native-reanimated";
 import { ThemedText } from "./ThemedText";
 import {
@@ -127,13 +134,13 @@ export default function TodoItem({ todo }: { todo: Todo }) {
   };
 
   return (
-    <Animated.View style={animatedStyles}>
-      <Animated.View
-        entering={FadeInRight}
-        exiting={FadeOutLeft}
-        layout={LinearTransition}
-        style={styles.container}
-      >
+    <Animated.View
+      entering={StretchInY}
+      exiting={StretchOutY}
+      layout={LinearTransition}
+      style={styles.container}
+    >
+      <Animated.View style={animatedStyles}>
         {todo.isEdit ? (
           <EditMode
             todo={todo}

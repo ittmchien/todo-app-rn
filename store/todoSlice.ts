@@ -16,10 +16,12 @@ export interface Todo {
 
 interface TodoState {
   items: Todo[];
+  currentNumber: number;
 }
 
 const initialState: TodoState = {
   items: [],
+  currentNumber: 1,
 };
 
 const todoSlice = createSlice({
@@ -31,14 +33,14 @@ const todoSlice = createSlice({
         priority: 2 as Priority,
         completed: false,
         dueDate: new Date().toISOString(),
-        title: `Task ${(state?.items?.length || 0) + 1}`,
+        title: `Task ${state.currentNumber}`,
         id: Date.now().toString(),
         createdAt: Date.now(),
         showDatePicker: false,
         isEdit: false,
         showPriorityPicker: false,
       });
-      state.items.sort((a, b) => b.priority - a.priority);
+      state.currentNumber++;
     },
     updateTodo: (
       state,
@@ -52,6 +54,9 @@ const todoSlice = createSlice({
     },
     deleteTodo: (state, action: PayloadAction<string>) => {
       state.items = state.items.filter((todo) => todo.id !== action.payload);
+      if (state.items.length === 0) {
+        state.currentNumber = 1;
+      }
     },
     toggleEdit: (state, action: PayloadAction<string>) => {
       const todo = state.items.find((item) => item.id === action.payload);
